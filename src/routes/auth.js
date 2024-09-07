@@ -11,10 +11,11 @@ router.post('/loginuser', async(req, res)=>{
     const mongo = req.app.locals.mongo
         try{
             if(await logInUser(mongo,userData)){
-                const accessToken = await generateTokens(mongo,userData.userid)
+                const {accessToken, refreshToken} = await generateTokens(mongo,userData.userid)
                 res.status(200).json({
                     message: 'Success',
-                    "accessToken":accessToken
+                    "accessToken":accessToken,
+                    "refreshToken":refreshToken
                     });
             }
             else{
@@ -65,7 +66,8 @@ router.post('/refresh', async (req, res) => {
 
         // Generate a new access token
         const accessToken = jwt.sign({ username: userid }, process.env.JWT_SECRET, { expiresIn: '15m' });
-        res.json({ accessToken });
+        res.status(200).json({ message: 'Success',
+                    "accessToken":accessToken });
     });
 });
 

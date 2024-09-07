@@ -7,16 +7,19 @@ dotenv.config();
 
 
 export const generateTokens = async (mongo,userId)=>{
+
     const accessToken = jwt.sign({ username: userId }, process.env.JWT_SECRET, { expiresIn: '15m' });
+
 
     if(await usersCollection(mongo).findOne({userid:userId, refreshToken:{$exists:false}})){
         const refreshToken = jwt.sign({ username: userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
         await refreshTokenSave(mongo,userId,refreshToken);
+        return {accessToken,refreshToken}
     }
     else{
         const userRefreshToken = await usersCollection(mongo).findOne({userid:userId},{projection:{refreshToken:1}})
-        if(!jwt.verify(userRefreshToken,process.env.JWT_SECRET))
-            await refreshTokenSave(mongo,userId,refreshToken);
+        if(!jwt.verify(userRefreshToken.refreshToken,process.env.JWT_SECRET))
+            await refreshTokenSave(mongo,userId,userRefreshToken.refreshToken);
+        return {"accessToken":accessToken, "refreshToken":userRefreshToken.refreshToken}
     }
-    return accessToken 
 }
