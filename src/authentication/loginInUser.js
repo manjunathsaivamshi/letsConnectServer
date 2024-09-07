@@ -1,13 +1,12 @@
 import { usersCollection } from "../../database/auth/users.js";
-import { encryptPass } from "./encryptPass.js";
+import { comparePass } from "./comparePass.js";
 
-export const regUser = async (mongo,userData) => {
+export const logInUser = async (mongo,userData) => {
     try {
     const userId = userData.userid
+    const reqPass = userData.pass
     const isExistingUser = await usersCollection(mongo).findOne({userid:userId})
-    if(!isExistingUser){
-        const hashedUserData = {...userData, pass:await encryptPass(userData.pass)}
-        await usersCollection(mongo).insertOne(hashedUserData)
+    if(isExistingUser && await comparePass(reqPass,isExistingUser.pass)){
         return true
     }
     else{
