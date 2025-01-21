@@ -1,13 +1,14 @@
-import { usersCollection } from "../../database/auth/users.js";
 import { encryptPass } from "./encryptPass.js";
+import user from "../../database/msd/user.js";
 
-export const regUser = async (mongo,userData) => {
+export const regUser = async (userData) => {
     try {
     const userId = userData.userid
-    const isExistingUser = await usersCollection(mongo).findOne({userid:userId})
+    const isExistingUser = await user.findOne({userid:userId})
     if(!isExistingUser){
-        const hashedUserData = {...userData, pass:await encryptPass(userData.pass)}
-        await usersCollection(mongo).insertOne(hashedUserData)
+        const hashedUserData = {...userData, password:await encryptPass(userData.password)}
+        const newUser = user(hashedUserData);
+        await newUser.save();
         return true
     }
     else{

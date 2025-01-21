@@ -1,10 +1,10 @@
-import { usersCollection } from "../../database/auth/users.js";
+import user from "../../database/msd/user.js";
 
-export const refreshTokenSave = async (mongo,userId,token) => {
+export const refreshTokenSave = async (userId,token) => {
     try {
-    const isExistingUser = await usersCollection(mongo).findOne({userid:userId})
+    const isExistingUser = await user.findOne({userid:userId})
     if(isExistingUser){
-        await usersCollection(mongo).updateOne({_id:isExistingUser._id},{$set:{refreshToken:token}})
+        await user.updateOne({_id:isExistingUser._id},{$set:{refreshToken:token}})
         return true
     }
     else{

@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
 // Load environment variables from .env file
@@ -18,12 +18,10 @@ export const mongoClient = async () => {
     }
 
     try {
-        client = new MongoClient(uri, {
+        client = await mongoose.connect(uri, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
-
-        await client.connect();
         console.log('Connected to MongoDB');
         return client;
     } catch (error) {

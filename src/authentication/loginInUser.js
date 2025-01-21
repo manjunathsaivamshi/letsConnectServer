@@ -1,12 +1,12 @@
-import { usersCollection } from "../../database/auth/users.js";
 import { comparePass } from "./comparePass.js";
+import user from "../../database/msd/user.js";
 
-export const logInUser = async (mongo,userData) => {
+export const logInUser = async (userData) => {
     try {
     const userId = userData.userid
-    const reqPass = userData.pass
-    const isExistingUser = await usersCollection(mongo).findOne({userid:userId})
-    if(isExistingUser && await comparePass(reqPass,isExistingUser.pass)){
+    const reqPass = userData.password
+    const isExistingUser = await user.findOne({userid:userId})
+    if(isExistingUser && await comparePass(reqPass,isExistingUser.password)){
         return true
     }
     else{
