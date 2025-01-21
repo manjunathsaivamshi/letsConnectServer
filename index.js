@@ -7,7 +7,7 @@ import { mongoClient } from './database/dbConnect.js';
 import authRoutes from './src/routes/auth.js'
 import roomRoutes from './src/routes/room.js'
 import { Server as socketio } from 'socket.io';  // Correct import for Socket.IO
-import socketHandler from './src/routes/server.js';
+import { roomHandler } from './src/room/roomHandler.js';
 
 dotenv.config();
 
@@ -54,7 +54,13 @@ const io = new socketio(server, {
   }
 });
 
-socketHandler(io);
+io.on("connection", (socket) => {
+    console.log("a user connected");
+    roomHandler(socket);
+    socket.on("disconnect", () => {
+        console.log("user disconnected");
+});
+});
 
 
 server.listen(port, async () => {
