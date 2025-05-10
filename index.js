@@ -1,68 +1,83 @@
-import express from 'express'
+import express from 'express';
+import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
-import { PeerServer } from 'peer'
-import cors from 'cors'
-import http from 'http'
-import { mongoClient } from './database/dbConnect.js';
-import authRoutes from './src/routes/auth.js'
-import roomRoutes from './src/routes/room.js'
-import { Server as socketio } from 'socket.io';  // Correct import for Socket.IO
-import { roomHandler } from './src/room/roomHandler.js';
+import cors from 'cors';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import nodemailer from "nodemailer";
+import logic from "./socket.js";
 
-dotenv.config();
+dotenv.config(); 
 
 const app = express();
-const server = http.createServer(app);
-const port = process.env.PORT || 5000;
-const allowedOrigins = [
-  'http://localhost:5173'
-];
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (allowedOrigins.includes(origin) || !origin) {
-      callback(null, true); // Allow the request
-    } else {
-      callback(new Error('Not allowed by CORS')); // Reject the request
+app.use([
+    cors(),
+    bodyParser.json({ limit: '30mb', extended: true}),
+    bodyParser.urlencoded({ limit: '30mb', extended: true})
+]);
+
+const server = createServer(app);
+export const io = new Server(server, {
+    cors: {
+        origin: ["http://localhost:3000","https://v-meet-puneet.netlify.app"],
+        methods: ['GET','POST']
     }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
-  allowedHeaders: ['Content-Type'], // Allowed headers
-};
-
-
-const peerServer = PeerServer({
-  path: '/peerjs',
-  allow_discovery: true,
 });
 
-if(peerServer) console.log(`Connected to Peer Server on port: 4500`)
-
-app.locals.mongo = await mongoClient()
-
-app.use(cors(corsOptions));
-app.use(express.json()); 
-app.use('/auth',authRoutes);
-app.use('/room',roomRoutes);
-app.use('/peerjs', peerServer);
-
-const io = new socketio(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true
-  }
+app.get('/',(req,res) => {
+    res.send('Video Meet (V-Meet) API');
 });
 
-io.on("connection", (socket) => {
-    console.log("a user connected");
-    roomHandler(socket);
-    socket.on("disconnect", () => {
-        console.log("user disconnected");
-});
+app.get('/rooms', (req,res) => {
+    const data = io.of('/').adapter.rooms;
+    const rooms = [...data.keys()];
+    const ans = rooms.filter((a) => !data.get(a).has(a));
+    res.send(ans);
 });
 
+app.post('/sendMail', async(req,res) => {
 
-server.listen(port, async () => {
-    console.log(`Server running at http://localhost:${port}`);
+    const link = req.body.link;
+    const users = req.body.users;
+    const name = req.body.name;
+
+    const html = `
+        <h1>Invitation From ${name}</h1>
+        <p>You have been invited for the meeting. </p>
+        <p>Meeeting Code: ${link} </p>
+        <p>Meeting Link: https://v-meet-puneet.netlify.app/${link}</p>
+    `
+
+    try{
+
+        let mailTransporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: 'puneetvideomeet@gmail.com',
+                pass: 'bftfyvonyzveqbxt'
+            }
+        });
+        
+        let mailDetails = {
+            from: 'V-Meet puneetvideomeet@gmail.com',
+            to: `${users}`,
+            cc: `${users}`,
+            subject: 'Invitation for the Group Meeting',
+            html: html 
+        };
+        
+        const info = await mailTransporter.sendMail(mailDetails);
+
+        res.status(200).send('Success');
+    }catch(err){
+        res.status(404).send("Error");
+    };
+});
+
+io.on('connection', logic);
+
+const PORT = process.env.PORT || 5000;
+
+server.listen(PORT,()=>{
+    console.log(`Server running at port ${PORT}`);
 });
